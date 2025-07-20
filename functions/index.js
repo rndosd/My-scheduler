@@ -318,45 +318,41 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// ✅ Firebase Functions v2에서 올바른 CORS 설정
+// ✅ 계정 생성 함수
 exports.requestAccount = onCall(
-  {
-    region: 'asia-northeast3',
-    // cors 옵션 제거 - v2에서는 자동 처리
-  },
+  { region: 'asia-northeast3' },
   async (request) => {
-    // CORS 헤더 추가
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '3600',
-    };
-
+    // V2: request 객체에서 데이터를 가져옵니다 (기존의 data, context가 통합됨).
     const { name, email, password } = request.data;
 
+    // 데이터 유효성 검사
     if (!name || !email || !password) {
+      logger.warn('requestAccount: Missing required fields.');
       throw new HttpsError('invalid-argument', '모든 필드를 입력해주세요.');
     }
 
     try {
+      const authAdmin = getAuth();
+      const db = getFirestore();
+
       // 이메일 중복 확인
       const userExists = await authAdmin.getUserByEmail(email).catch((err) => {
         if (err.code === 'auth/user-not-found') return null;
         throw err;
       });
+
       if (userExists) {
-        throw new HttpsError('already-exists', 'auth/email-already-exists');
+        throw new HttpsError('already-exists', '이미 사용 중인 이메일입니다.');
       }
 
-      // 사용자 생성
+      // Firebase Auth에 사용자 생성
       const newUser = await authAdmin.createUser({
         email,
         password,
         displayName: name,
       });
 
-      // Custom Claims 설정 (기본 user 역할)
+      // Custom Claims 설정
       await authAdmin.setCustomUserClaims(newUser.uid, { role: 'user' });
 
       // Firestore에 사용자 정보 저장
@@ -368,15 +364,25 @@ exports.requestAccount = onCall(
         createdAt: FieldValue.serverTimestamp(),
       });
 
+      logger.info(`Successfully created user: ${newUser.uid}`);
+
+      // 성공 응답 반환
       return {
         success: true,
         message: '회원가입이 완료되었습니다.',
-        headers: corsHeaders,
+        uid: newUser.uid,
       };
     } catch (error) {
-      console.error('requestAccount error:', error);
-      if (error.code && error.httpErrorCode) throw error;
-      throw new HttpsError('internal', error.message || '서버 오류 발생');
+      logger.error('requestAccount error:', error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError(
+        'internal',
+        error.message || '서버 오류가 발생했습니다.'
+      );
     }
   }
 );
