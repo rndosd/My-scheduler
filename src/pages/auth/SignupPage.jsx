@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../firebase';
 import toast, { Toaster } from 'react-hot-toast';
-import styles from './SignupPage.module.css'; // SignupPage 전용 CSS import
+import styles from './SignupPage.module.css';
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -37,20 +38,38 @@ const SignupPage = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:3001/signup', {
+      // Firebase Functions 호출
+      const requestAccount = httpsCallable(functions, 'requestAccount');
+
+      const result = await requestAccount({
+        name: formData.displayName,
         email: formData.email,
         password: formData.password,
-        displayName: formData.displayName,
       });
+
+      console.log('회원가입 성공:', result.data);
 
       toast.success(
         `${formData.displayName}님, 환영합니다! 로그인 페이지로 이동합니다.`
       );
       navigate('/login');
     } catch (error) {
-      toast.error(
-        error.response?.data?.error || '회원가입 중 오류가 발생했습니다.'
-      );
+      console.error('회원가입 에러:', error);
+
+      let errorMessage = '회원가입 중 오류가 발생했습니다.';
+
+      // Firebase Functions 에러 처리
+      if (error.code === 'functions/already-exists') {
+        errorMessage = '이미 사용 중인 이메일입니다.';
+      } else if (error.code === 'functions/invalid-argument') {
+        errorMessage = '입력 정보를 확인해주세요.';
+      } else if (error.code === 'functions/internal') {
+        errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

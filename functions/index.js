@@ -320,7 +320,14 @@ if (process.env.NODE_ENV === 'development') {
 
 // ✅ 일반 계정 생성 함수
 exports.requestAccount = onCall(
-  { region: 'asia-northeast3', cors: true },
+  {
+    region: 'asia-northeast3',
+    cors: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://your-domain.com',
+    ],
+  },
   async (request) => {
     const { name, email, password } = request.data;
 
