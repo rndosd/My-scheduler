@@ -318,17 +318,21 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// ✅ 일반 계정 생성 함수
+// ✅ Firebase Functions v2에서 올바른 CORS 설정
 exports.requestAccount = onCall(
   {
     region: 'asia-northeast3',
-    cors: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://your-domain.com',
-    ],
+    // cors 옵션 제거 - v2에서는 자동 처리
   },
   async (request) => {
+    // CORS 헤더 추가
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '3600',
+    };
+
     const { name, email, password } = request.data;
 
     if (!name || !email || !password) {
@@ -364,7 +368,11 @@ exports.requestAccount = onCall(
         createdAt: FieldValue.serverTimestamp(),
       });
 
-      return { success: true, message: '회원가입이 완료되었습니다.' };
+      return {
+        success: true,
+        message: '회원가입이 완료되었습니다.',
+        headers: corsHeaders,
+      };
     } catch (error) {
       console.error('requestAccount error:', error);
       if (error.code && error.httpErrorCode) throw error;
