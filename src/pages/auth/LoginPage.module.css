@@ -1,0 +1,159 @@
+/* 전체 페이지 컨테이너 */
+.pageContainer {
+  /* --- 중앙 정렬을 위한 설정 --- */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* -------------------------- */
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* 배경 이미지 설정 */
+  background-image: url('/assets/login-background.jpg');  /* 이 부분만 변경 */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  
+  /* 오버레이를 위한 기준점 설정 */
+  position: relative; 
+}
+
+/* --- 배경을 흐릿하게 만드는 반투명 오버레이 --- */
+.pageContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  
+  /* 반투명한 어두운 레이어 */
+  background-color: rgba(255, 255, 255, 0.1);
+
+  /* 블러 효과(유리 효과) */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); /* Safari 호환성 */
+  
+  z-index: 0;
+}
+/* ------------------------------------------- */
+
+
+/* 로그인 카드 */
+.loginCard {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  background-color: rgba(255, 255, 255, 0.85); /* 카드를 살짝 반투명하게 조정 */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 1; /* 오버레이 위에 위치하도록 설정 */
+}
+
+/* 헤더 */
+.header {
+  margin-bottom: 30px;
+}
+
+.header .icon {
+  font-size: 40px;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1c1e21;
+  margin: 10px 0;
+}
+
+.header p {
+  font-size: 16px;
+  color: #606770;
+  margin: 0;
+}
+
+/* 폼 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* 입력 필드 그룹 */
+.inputGroup {
+  text-align: left;
+}
+
+.inputGroup label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #606770;
+  margin-bottom: 5px;
+}
+
+.inputGroup input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 1px solid #dddfe2;
+  border-radius: 6px;
+  background-color: #f5f6f7;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inputGroup input:focus {
+  outline: none;
+  border-color: #1877f2;
+  box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
+  background-color: #fff;
+}
+
+/* 로그인 버튼 */
+.loginButton {
+  width: 100%;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #1877f2;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+.loginButton:hover {
+  background-color: #166fe5;
+}
+
+.loginButton:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+/* 하단 링크 */
+.footer {
+  margin-top: 25px;
+  font-size: 14px;
+  color: #8a8d91;
+}
+
+.footer a {
+  color: #1877f2;
+  text-decoration: none;
+  font-weight: 500;
+  margin: 0 10px;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+.footer span {
+  color: #dddfe2;
+}
