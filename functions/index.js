@@ -322,56 +322,62 @@ if (process.env.NODE_ENV === 'development') {
 exports.createAccount = onCall(
   { region: 'asia-northeast3' },
   async (request) => {
-    // 1. 프론트엔드에서 이름, 이메일, 비밀번호를 받습니다.
     const { name, email, password } = request.data;
 
-    // 2. 데이터 유효성을 검사합니다. (finclass의 requestTeacherAccount 로직)
+    // 데이터 유효성 검사
     if (!name || !email || !password) {
       throw new HttpsError('invalid-argument', '모든 필드를 입력해주세요.');
     }
 
     try {
-      // 3. 이메일이 이미 존재하는지 확인합니다. (finclass의 requestTeacherAccount 로직)
-      const userExists = await authAdmin.getUserByEmail(email).catch((err) => {
-        if (err.code === 'auth/user-not-found') return null;
-        throw err;
-      });
-      if (userExists) {
-        throw new HttpsError('already-exists', '이미 사용 중인 이메일입니다.');
-      }
+      const authAdmin = getAuth();
+      const db = getFirestore();
 
-      // 4. Firebase Auth에 사용자를 생성합니다. (finclass의 requestTeacherAccount 로직)
+      // 👇 1. 이메일 중복을 미리 확인하는 로직을 삭제합니다.
+      /*
+    const userExists = await authAdmin.getUserByEmail(email).catch(...);
+    if (userExists) {
+      throw new HttpsError("already-exists", "이미 사용 중인 이메일입니다.");
+    }
+    */
+
+      // 바로 사용자 생성을 시도합니다.
       const newUser = await authAdmin.createUser({
         email,
         password,
         displayName: name,
       });
 
-      // 5. Custom Claim을 즉시 설정합니다. (finclass의 approveTeacher 로직)
-      await authAdmin.setCustomUserClaims(newUser.uid, {
-        role: 'user', // 기본 역할
-        isApproved: true, // 즉시 승인 상태
-      });
+      // Custom Claims 설정
+      await authAdmin.setCustomUserClaims(newUser.uid, { role: 'user' });
 
-      // 6. Firestore에 최종 사용자 문서를 즉시 생성합니다. (finclass의 approveTeacher 로직)
+      // Firestore에 사용자 정보 저장
       await db.doc(`users/${newUser.uid}`).set({
         uid: newUser.uid,
         name,
         email,
         role: 'user',
-        status: 'approved', // 'pending'이 아닌 'approved'로 바로 저장
         createdAt: FieldValue.serverTimestamp(),
       });
 
-      // 7. 성공 메시지를 반환합니다.
       return {
         success: true,
-        message: '회원가입이 성공적으로 완료되었습니다.',
+        message: '회원가입이 완료되었습니다.',
+        uid: newUser.uid,
       };
     } catch (error) {
-      console.error('createAccount error:', error);
-      if (error instanceof HttpsError) throw error; // HttpsError는 그대로 전달
-      throw new HttpsError('internal', '회원가입 중 서버 오류가 발생했습니다.');
+      logger.error('createAccount error:', error);
+
+      // 👇 2. createUser에서 직접 발생하는 'email-already-exists' 에러를 처리합니다.
+      if (error.code === 'auth/email-already-exists') {
+        throw new HttpsError('already-exists', '이미 사용 중인 이메일입니다.');
+      }
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError('internal', '서버 오류가 발생했습니다.');
     }
   }
 );

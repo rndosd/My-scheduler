@@ -1,29 +1,36 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../firebase';
 import toast, { Toaster } from 'react-hot-toast';
+
+// Firebase Callable Function 관련 모듈
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { functions } from '../../firebase'; // firebase.js에서 export한 functions 인스턴스
+
+// 스타일 import
 import styles from './SignupPage.module.css';
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
-    displayName: '',
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 모든 입력 필드를 한번에 관리하는 핸들러
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 폼 제출 및 회원가입 처리
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.displayName || !formData.email || !formData.password) {
+    // 1. 클라이언트 측 유효성 검사
+    if (!formData.name || !formData.email || !formData.password) {
       toast.error('모든 필수 필드를 입력해주세요.');
       return;
     }
@@ -36,42 +43,26 @@ const SignupPage = () => {
       return;
     }
 
-    setLoading(true);
-    try {
-      // Firebase Functions 호출
-      const requestAccount = httpsCallable(functions, 'requestAccount');
+    setIsLoading(true);
 
-      const result = await requestAccount({
-        name: formData.displayName,
+    try {
+      // 2. 백엔드의 'createAccount' 함수를 호출
+      const createAccount = httpsCallable(functions, 'createAccount');
+      await createAccount({
+        name: formData.name,
         email: formData.email,
         password: formData.password,
       });
 
-      console.log('회원가입 성공:', result.data);
-
-      toast.success(
-        `${formData.displayName}님, 환영합니다! 로그인 페이지로 이동합니다.`
-      );
-      navigate('/login');
+      // 3. 성공 시 피드백 및 메인 페이지로 이동
+      toast.success(`${formData.name}님, 환영합니다!`);
+      navigate('/'); // 바로 메인 페이지로 이동
     } catch (error) {
-      console.error('회원가입 에러:', error);
-
-      let errorMessage = '회원가입 중 오류가 발생했습니다.';
-
-      // Firebase Functions 에러 처리
-      if (error.code === 'functions/already-exists') {
-        errorMessage = '이미 사용 중인 이메일입니다.';
-      } else if (error.code === 'functions/invalid-argument') {
-        errorMessage = '입력 정보를 확인해주세요.';
-      } else if (error.code === 'functions/internal') {
-        errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      toast.error(errorMessage);
+      // 4. 에러 처리 (Cloud Function에서 보낸 에러 메시지 표시)
+      console.error('회원가입 오류:', error);
+      toast.error(error.message || '알 수 없는 오류가 발생했습니다.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -80,22 +71,20 @@ const SignupPage = () => {
       <Toaster position="top-center" />
       <div className={styles.pageContainer}>
         <div className={styles.signupCard}>
-          {/* 헤더 */}
           <div className={styles.header}>
             <span className={styles.icon}>🚀</span>
             <h1>My Voice Scheduler</h1>
             <p>새로운 계정을 만들어 시작하세요.</p>
           </div>
 
-          {/* 회원가입 폼 */}
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.inputGroup}>
-              <label htmlFor="displayName">이름</label>
+              <label htmlFor="name">이름</label>
               <input
-                id="displayName"
+                id="name"
                 type="text"
-                name="displayName"
-                value={formData.displayName}
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
                 placeholder="사용하실 이름을 입력하세요"
                 required
@@ -139,14 +128,13 @@ const SignupPage = () => {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className={styles.signupButton}
             >
-              {loading ? '가입 중...' : '계정 만들기'}
+              {isLoading ? '계정 생성 중...' : '계정 만들기'}
             </button>
           </form>
 
-          {/* 하단 링크 */}
           <div className={styles.footer}>
             <span>이미 계정이 있으신가요?</span>
             <Link to="/login">로그인</Link>
