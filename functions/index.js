@@ -1,39 +1,52 @@
-// functions/index.js (CommonJS 버전)
+// functions/index.js
 
+// ✅ Firebase Functions v2 SDK
 const {
   onRequest,
   onCall,
   HttpsError,
-} = require('firebase-functions/v2/https'); // onCall, HttpsError 추가
-const { logger } = require('firebase-functions');
+} = require('firebase-functions/v2/https');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { setGlobalOptions } = require('firebase-functions/v2');
-const admin = require('firebase-admin');
+const { logger } = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
+
+// ✅ Firebase Admin SDK (V2 모듈화 방식)
+const { initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const {
+  getFirestore,
+  FieldValue,
+  Timestamp,
+  serverTimestamp,
+  increment,
+} = require('firebase-admin/firestore');
+
+// ✅ 외부 라이브러리
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const axios = require('axios');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
 
-// v2 글로벌 설정
-setGlobalOptions({
-  region: 'asia-northeast3',
-  memory: '1GiB',
-  timeoutSeconds: 540,
-});
+// ✅ v2 글로벌 설정
+setGlobalOptions({ region: 'asia-northeast3' });
+
+// ✅ Firebase Admin 초기화 (V2 방식)
+initializeApp();
+
+// ✅ dayjs 플러그인 활성화
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // 로컬 서비스 파일들도 require로 변경
 const gptService = require('./services/gptService.js');
 const firestoreService = require('./services/firestoreService.js');
 const whisperService = require('./services/whisperService.js');
 const apiService = require('./services/apiService.js');
-
-// ✅ Firebase Admin 초기화 (가장 먼저)
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-// ✅ Admin 서비스들 추가
-const authAdmin = admin.auth();
-const db = admin.firestore();
-const { FieldValue } = admin.firestore;
 
 const app = express();
 
