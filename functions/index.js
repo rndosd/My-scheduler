@@ -5,6 +5,7 @@ const {
   onCall,
   HttpsError,
 } = require('firebase-functions/v2/https'); // onCall, HttpsError 추가
+const { logger } = require('firebase-functions');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const admin = require('firebase-admin');
 const express = require('express');
